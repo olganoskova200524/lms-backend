@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+
+# Django media/static
+media/
+static/
+staticfiles/
+
+# Migrations cache
+*/migrations/__pycache__/
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# Poetry / виртуальное окружение
+.venv/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
