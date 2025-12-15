@@ -9,12 +9,23 @@ class IsModerator(BasePermission):
     """
 
     def has_permission(self, request, view):
-        user = request.user
-        return bool(
-            user
-            and user.is_authenticated
-            and user.groups.filter(name=MODERATOR_GROUP_NAME).exists()
+        return (
+                request.user
+                and request.user.is_authenticated
+                and request.user.groups.filter(name=MODERATOR_GROUP_NAME).exists()
         )
+
+    def has_object_permission(self, request, view, obj):
+        return self.has_permission(request, view)
+
+
+class IsOwner(BasePermission):
+    """
+    True, если пользователь является владельцем объекта.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        return request.user.is_authenticated and getattr(obj, "owner_id", None) == request.user.id
 
 
 class IsNotModeratorForCreateDelete(BasePermission):
