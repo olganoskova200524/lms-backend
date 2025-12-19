@@ -2,7 +2,6 @@ from urllib.parse import urlparse
 
 from rest_framework.serializers import ValidationError
 
-
 ALLOWED_HOSTS = {"youtube.com", "www.youtube.com"}
 
 

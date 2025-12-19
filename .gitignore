@@ -25,6 +25,7 @@ staticfiles/
 .DS_Store
 Thumbs.db
 
+.coverage
 coverage
 htmlcov/
 
