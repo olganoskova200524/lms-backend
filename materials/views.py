@@ -4,6 +4,7 @@ from rest_framework import generics
 
 from users.permissions import IsModerator, IsOwner
 from .models import Course, Lesson
+from .paginators import DefaultPagination
 from .serializers import CourseSerializer, LessonSerializer
 
 
@@ -16,8 +17,9 @@ class CourseViewSet(ModelViewSet):
     - update/partial_update (PUT/PATCH /courses/{id}/)
     - destroy (DELETE /courses/{id}/)
     """
-    queryset = Course.objects.all()
+    queryset = Course.objects.all().order_by("id")
     serializer_class = CourseSerializer
+    pagination_class = DefaultPagination
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -47,8 +49,9 @@ class LessonListCreateAPIView(generics.ListCreateAPIView):
     GET /lessons/  — список уроков
     POST /lessons/ — создание урока
     """
-    queryset = Lesson.objects.all()
+    queryset = Lesson.objects.all().order_by("id")
     serializer_class = LessonSerializer
+    pagination_class = DefaultPagination
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)

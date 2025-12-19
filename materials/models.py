@@ -53,3 +53,32 @@ class Lesson(models.Model):
 
     def __str__(self):
         return f'{self.title} ({self.course})'
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='subscriptions',
+        verbose_name='пользователь',
+    )
+    course = models.ForeignKey(
+        'Course',
+        on_delete=models.CASCADE,
+        related_name='subscriptions',
+        verbose_name='курс',
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='создано')
+
+    class Meta:
+        verbose_name = 'подписка'
+        verbose_name_plural = 'подписки'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'course'],
+                name='unique_user_course_subscription',
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user} -> {self.course}'

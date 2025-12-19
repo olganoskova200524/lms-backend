@@ -14,10 +14,15 @@ dependencies = [
     "psycopg2-binary (>=2.9.11,<3.0.0)",
     "python-dotenv (>=1.2.1,<2.0.0)",
     "django-filter (>=25.2,<26.0)",
-    "djangorestframework-simplejwt (>=5.5.1,<6.0.0)"
+    "djangorestframework-simplejwt (>=5.5.1,<6.0.0)",
+    "coverage (>=7.13.0,<8.0.0)"
 ]
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^7.3.0"
+
