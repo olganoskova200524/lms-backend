@@ -20,6 +20,8 @@ staticfiles/
 # Poetry / виртуальное окружение
 .venv/
 .env
+.env.*
+!.env.example
 
 # OS
 .DS_Store
