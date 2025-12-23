@@ -45,6 +45,11 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Сумма должна быть больше 0.")
+        return value
+
 
 class UserSerializer(serializers.ModelSerializer):
     """Для просмотра и редактирования пользователя (без пароля)."""
