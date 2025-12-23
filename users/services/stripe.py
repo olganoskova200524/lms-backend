@@ -3,6 +3,7 @@ from decimal import Decimal
 import stripe
 from django.conf import settings
 
+
 def _set_api_key() -> None:
     stripe.api_key = settings.STRIPE_SECRET_KEY
 
