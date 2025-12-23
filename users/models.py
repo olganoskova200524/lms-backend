@@ -99,6 +99,7 @@ class Payment(models.Model):
         verbose_name='способ оплаты',
     )
     payment_url = models.URLField(
+        max_length=2048,
         blank=True,
         null=True,
         verbose_name='ссылка на оплату',
