@@ -4,6 +4,7 @@ from rest_framework import viewsets, generics, permissions, status
 from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Payment
 from .serializers import (
@@ -88,3 +89,23 @@ class PaymentCreateAPIView(generics.CreateAPIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class PaymentSuccessAPIView(APIView):
+    """
+    Success URL для Stripe: возвращает 200 OK и сообщение об успешной оплате.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        return Response({"detail": "Payment success"}, status=status.HTTP_200_OK)
+
+
+class PaymentCancelAPIView(APIView):
+    """
+    Cancel URL для Stripe: возвращает 200 OK и сообщение об отмене оплаты.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        return Response({"detail": "Payment canceled"}, status=status.HTTP_200_OK)
