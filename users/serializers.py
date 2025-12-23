@@ -14,6 +14,38 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class PaymentCreateSerializer(serializers.ModelSerializer):
+    """
+    Для создания платежа.
+
+    Используется при POST-запросах для создания объекта Payment.
+    Позволяет указать оплату либо за курс, либо за отдельный урок.
+
+    Правила валидации:
+    - необходимо указать либо paid_course, либо paid_lesson;
+    - нельзя указывать paid_course и paid_lesson одновременно.
+    """
+
+    class Meta:
+        model = Payment
+        fields = ("paid_course", "paid_lesson", "amount", "payment_method")
+
+    def validate(self, attrs):
+        paid_course = attrs.get("paid_course")
+        paid_lesson = attrs.get("paid_lesson")
+
+        if not paid_course and not paid_lesson:
+            raise serializers.ValidationError(
+                "Нужно указать paid_course или paid_lesson."
+            )
+        if paid_course and paid_lesson:
+            raise serializers.ValidationError(
+                "Нельзя одновременно paid_course и paid_lesson."
+            )
+
+        return attrs
+
+
 class UserSerializer(serializers.ModelSerializer):
     """Для просмотра и редактирования пользователя (без пароля)."""
 
