@@ -1,6 +1,7 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics
+from materials.tasks import notify_course_updated
 
 from users.permissions import IsModerator, IsOwner
 from .models import Course, Lesson
@@ -23,6 +24,10 @@ class CourseViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def perform_update(self, serializer):
+        course = serializer.save()
+        notify_course_updated.delay(course.id)
 
     def get_queryset(self):
         qs = super().get_queryset()
