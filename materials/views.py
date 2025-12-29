@@ -1,3 +1,6 @@
+from datetime import timedelta
+from django.db import transaction
+from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics
@@ -86,6 +89,20 @@ class LessonRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
+
+    def perform_update(self, serializer):
+        lesson = serializer.save()
+        course_id = lesson.course_id  # быстрее чем lesson.course.id
+
+        with transaction.atomic():
+            course = Course.objects.select_for_update().get(pk=course_id)
+            now = timezone.now()
+
+            last = course.last_notification_sent_at
+            if last is None or now - last >= timedelta(hours=4):
+                course.last_notification_sent_at = now
+                course.save(update_fields=["last_notification_sent_at"])
+                notify_course_updated.delay(course.id)
 
     def get_permissions(self):
         if self.request.method == "DELETE":
