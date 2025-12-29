@@ -91,6 +91,22 @@ poetry run python manage.py runserver
 - **DELETE `/api/lessons/{id}/`** — удалить урок
 
 
+### Celery & Celery Beat
+
+В проекте используется Celery для фоновых задач и django-celery-beat для их планирования.
+
+Реализована периодическая задача, которая:
+- проверяет пользователей по полю `last_login`
+- если пользователь не заходил более 30 дней — устанавливает `is_active=False`
+
+Задача запускается ежедневно в 03:00 (Europe/Moscow).
+
+Для запуска:
+```bash
+celery -A config worker -l info
+celery -A config beat -l info
+```
+
 ---
 
 ## Автор
