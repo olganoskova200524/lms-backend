@@ -8,7 +8,7 @@
 ## Стек технологий
 
 - **Python 3.12+**
-- **Django 4.x**
+- **Django 5.2x**
 - **Django REST Framework**
 - **PostgreSQL**
 - **Poetry** — менеджер зависимостей
