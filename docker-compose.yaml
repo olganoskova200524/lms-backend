@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+
+  backend:
+    build: .
+
+  celery:
+    build: .
+
+  beat:
+    build: .
+
+volumes:
+  postgres_data:
+
