@@ -28,9 +28,21 @@ services:
 
   celery:
     build: .
+    env_file:
+      - .env
+    command: celery -A config worker -l info
+    depends_on:
+      - redis
+      - postgres
 
   beat:
     build: .
+    env_file:
+      - .env
+    command: celery -A config beat -l info
+    depends_on:
+      - redis
+      - postgres
 
 volumes:
   postgres_data:
