@@ -26,14 +26,6 @@ jobs:
           poetry config virtualenvs.create false
           poetry install --no-root
 
-      - name: Run migrations
-        env:
-          DEBUG: "0"
-          SECRET_KEY: "test"
-          ALLOWED_HOSTS: "localhost"
-        run: |
-          poetry run python manage.py migrate --noinput
-
       - name: Run tests
         env:
           DEBUG: "0"
