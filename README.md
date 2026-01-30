@@ -163,6 +163,151 @@ celery -A config worker -l info
 celery -A config beat -l info
 ```
 
+## Deployment & CI/CD
+
+### Общая схема
+
+Проект деплоится автоматически с помощью **GitHub Actions**.
+
+Схема работы:
+
+1. Разработка ведётся в feature-ветках
+2. Создаётся Pull Request в ветку `develop`
+3. При push / merge в `develop`:
+    - запускаются тесты
+    - при успешных тестах выполняется деплой на сервер
+
+---
+
+### Требования к серверу
+
+Удалённый сервер (Ubuntu) должен иметь:
+
+- Python 3.12+
+- Poetry
+- PostgreSQL
+- Redis
+- systemd
+- Открытые порты: `22`, `80` (и `8000`, если доступ к backend осуществляется напрямую без Nginx)
+
+---
+
+### Размещение проекта на сервере
+
+Проект разворачивается в каталоге:
+
+```bash
+/home/ubuntu/apps/lms-backend
+```
+
+Код на сервере всегда находится в ветке develop
+
+Если **Nginx не настроен**, backend доступен напрямую по адресу:
+
+```text
+http://<SERVER_IP>:8000
+```
+
+## Переменные окружения
+
+Все чувствительные данные хранятся вне репозитория.
+
+На сервере используется файл `.env`, который создаётся на основе шаблона:
+
+```bash
+cp .env.example .env
+```
+
+### Пример используемых переменных
+
+- `SECRET_KEY=your_secret_key`
+- `DEBUG=False`
+- `ALLOWED_HOSTS=127.0.0.1,localhost,<SERVER_IP>`
+- `DB_NAME=lms_backend`
+- `DB_USER=lms_user`
+- `DB_PASSWORD=strong_password`
+- `DB_HOST=127.0.0.1`
+- `DB_PORT=5432`
+- `REDIS_URL=redis://127.0.0.1:6379/0`
+- `CELERY_BROKER_URL=redis://127.0.0.1:6379/0`
+- `CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1`
+
+## ⚠️ Важно
+
+Значения:
+
+- `DB_HOST=postgres`
+- `redis://redis:6379/...`
+
+используются **только при запуске через Docker Compose**.
+
+При деплое на сервер **без Docker** необходимо использовать:
+
+```text
+127.0.0.1
+```
+
+Файл `.env` **не коммитится** и добавлен в `.gitignore`.
+
+## CI (тесты)
+
+Workflow **GitHub Actions**:
+
+- запускается при каждом `push`;
+- устанавливает зависимости через **Poetry**;
+- выполняет команду:
+
+```bash
+poetry run python manage.py test
+```
+
+При ошибках тестов деплой не выполняется.
+
+## 🚚 CD (деплой)
+
+Деплой выполняется **только для ветки `develop`** после успешного прохождения тестов.
+
+### Во время деплоя выполняются шаги:
+
+- **GitHub Actions** подключается к серверу по **SSH**;
+- выполняется обновление кода:
+
+```bash
+git pull origin develop
+```
+
+- устанавливаются зависимости:
+
+```bash
+poetry install --no-interaction --no-root
+```
+
+- применяются миграции базы данных:
+
+```bash
+poetry run python manage.py migrate --noinput
+```
+
+- перезапускается backend-сервис:
+
+```bash
+sudo systemctl restart lms-backend.service
+```
+
+## Управление приложением
+
+Backend-приложение запускается через **Gunicorn** и управляется **systemd**.
+
+- сервис: `lms-backend.service`
+- автоматический перезапуск при падении
+- перезапуск при деплое
+
+### Проверка состояния сервиса на сервере
+
+```bash
+sudo systemctl status lms-backend.service
+sudo journalctl -u lms-backend.service -n 50 --no-pager
+```
 ---
 
 ## Автор
