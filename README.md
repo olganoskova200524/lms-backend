@@ -207,6 +207,8 @@ celery -A config beat -l info
 ```text
 http://<SERVER_IP>:8000
 ```
+На текущий момент деплой настроен без Nginx, с прямым доступом к Gunicorn.
+
 
 ## Переменные окружения
 
@@ -232,7 +234,20 @@ cp .env.example .env
 - `CELERY_BROKER_URL=redis://127.0.0.1:6379/0`
 - `CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1`
 
-## ⚠️ Важно
+
+### GitHub Secrets
+
+Для автоматического деплоя используются GitHub Secrets:
+
+- `SSH_KEY` — приватный SSH-ключ для подключения к серверу
+- `SSH_USER` — пользователь сервера (ubuntu)
+- `SERVER_IP` — публичный IP сервера
+- `DEPLOY_DIR` — путь к проекту на сервере
+
+Secrets используются в GitHub Actions workflow и не хранятся в репозитории.
+
+
+## Важно
 
 Значения:
 
@@ -263,7 +278,7 @@ poetry run python manage.py test
 
 При ошибках тестов деплой не выполняется.
 
-## 🚚 CD (деплой)
+## CD (деплой)
 
 Деплой выполняется **только для ветки `develop`** после успешного прохождения тестов.
 
@@ -298,9 +313,22 @@ sudo systemctl restart lms-backend.service
 
 Backend-приложение запускается через **Gunicorn** и управляется **systemd**.
 
-- сервис: `lms-backend.service`
-- автоматический перезапуск при падении
-- перезапуск при деплое
+Gunicorn используется как WSGI-сервер для Django, а systemd — для:
+- автоматического запуска приложения при старте сервера;
+- перезапуска при падении;
+- перезапуска во время деплоя.
+
+### systemd-сервис
+
+- имя сервиса: `lms-backend.service`
+- пользователь: `ubuntu`
+- рабочая директория: `/home/ubuntu/apps/lms-backend`
+
+Во время деплоя GitHub Actions выполняет команду:
+
+```bash
+sudo systemctl restart lms-backend.service
+```
 
 ### Проверка состояния сервиса на сервере
 
