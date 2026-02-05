@@ -2,7 +2,13 @@ name: CI/CD
 
 on:
   push:
-  workflow_dispatch:
+    branches:
+      - develop
+    pull_request:
+      branches:
+        - develop
+    workflow_dispatch:
+
 
 permissions:
   contents: read
@@ -126,9 +132,19 @@ jobs:
             set -e
             cd "${{ secrets.DEPLOY_DIR }}"
 
-            git fetch --all
-            git checkout develop
-            git pull --ff-only origin develop
+            git fetch --all --prune
+
+            BRANCH="${{ github.ref_name }}"
+            echo "Deploying branch: $BRANCH"
+
+            if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
+              git checkout "$BRANCH"
+            else
+              git checkout -b "$BRANCH" "origin/$BRANCH"
+            fi
+
+            git pull --ff-only origin "$BRANCH"
+
 
             docker compose -f docker-compose.yaml pull || true
             docker compose -f docker-compose.yaml up -d --build
