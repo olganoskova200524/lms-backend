@@ -1,18 +1,29 @@
 # LMS Backend
 
-Учебный проект — серверная часть LMS-системы, позволяющей размещать обучающие материалы, курсы и уроки.
-Проект разработан на **Django + Django REST Framework** с использованием **Poetry** и базой данных **PostgreSQL**.
+Backend-часть учебной LMS-системы для управления курсами, уроками и пользователями.
+
+Проект реализован на **Django + Django REST Framework**  
+и включает полноценную инфраструктуру:
+
+- Docker Compose
+- Celery + Redis
+- PostgreSQL
+- CI/CD через GitHub Actions
 
 ---
 
 ## Стек технологий
 
-- **Python 3.12+**
-- **Django 5.2x**
+- **Python 3.12**
+- **Django 5.x**
 - **Django REST Framework**
 - **PostgreSQL**
-- **Poetry** — менеджер зависимостей
-- **Pillow** — для работы с изображениями (аватарки, превью)
+- **Redis**
+- **Celery + django-celery-beat**
+- **Poetry**
+- **Docker / Docker Compose**
+- **Nginx**
+- **GitHub Actions (CI/CD)**
 
 ---
 
@@ -20,29 +31,73 @@
 
 ```
 lms_backend/
-├── config/                 # настройки проекта Django
-│   ├── settings.py
-│   ├── urls.py
-│   └── ...
-├── materials/              # приложение: Курсы и Уроки
-│   ├── models.py           # модели Course и Lesson
-│   ├── serializers.py
-│   ├── views.py
-│   ├── urls.py
-│   └── ...
-├── users/                  # приложение: Пользователи
-│   ├── models.py           # кастомная модель User
+├── .github/
+│   └── workflows/
+│       └── ci.yml                # CI/CD pipeline (lint, tests, docker build, deploy)
+│
+├── config/                       # Основные настройки Django-проекта
+│   ├── __init__.py
+│   ├── asgi.py                   # ASGI-конфигурация
+│   ├── celery.py                 # Конфигурация Celery
+│   ├── settings.py               # Основные настройки проекта
+│   ├── urls.py                   # Корневые URL
+│   └── wsgi.py                   # WSGI-конфигурация
+│
+├── materials/                    # Приложение: Курсы и Уроки
+│   ├── migrations/
+│   ├── __init__.py
 │   ├── admin.py
-│   └── ...
-├── manage.py
-├── pyproject.toml          # зависимости Poetry
+│   ├── apps.py
+│   ├── models.py                 # Модели Course и Lesson
+│   ├── paginators.py
+│   ├── serializers.py
+│   ├── tasks.py                  # Celery-задачи
+│   ├── tests.py
+│   ├── urls.py
+│   ├── validators.py
+│   ├── views.py
+│   └── views_subscriptions.py
+│
+├── users/                        # Приложение: Пользователи
+│   ├── fixtures/                 # Фикстуры для загрузки данных
+│   │   ├── groups.json
+│   │   └── payments.json
+│   ├── migrations/
+│   ├── services/
+│   │   └── stripe.py             # Интеграция со Stripe
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py                 # Кастомная модель пользователя
+│   ├── permissions.py
+│   ├── serializers.py
+│   ├── tasks.py                  # Celery-задачи пользователей
+│   ├── tests.py
+│   ├── urls.py
+│   └── views.py
+│
+├── nginx/
+│   └── default.conf              # Конфигурация Nginx (опционально)
+│
+├── .env                          # Переменные окружения (не коммитится)
+├── .env.example                  # Пример файла переменных окружения
+├── .dockerignore
+├── .flake8                       # Настройки flake8
+├── .gitignore
+├── celerybeat-schedule           # Файл расписания Celery Beat
+├── coverage.txt
+├── docker-compose.yaml           # Docker Compose (backend, postgres, redis, celery)
+├── Dockerfile                    # Docker-образ backend
+├── entrypoint.sh                 # Entrypoint для контейнера backend
+├── manage.py                     # Django management script
 ├── poetry.lock
-└── README.md
+├── pyproject.toml                # Зависимости Poetry
+└── README.md                     # Документация проекта
 ```
 
 ---
 
-## Установка
+## Установка (опционально, без Docker)
 
 ```bash
 git clone https://github.com/olganoskova200524/lms-backend.git
@@ -55,6 +110,10 @@ poetry install
 ### 1. Подготовка переменных окружения
 
 Создайте файл `.env` в корне проекта на основе `.env.example` и заполните необходимые переменные.
+
+```bash
+cp .env.example .env
+```
 
 Для запуска через Docker Compose важно указать:
 
@@ -70,7 +129,7 @@ CELERY_RESULT_BACKEND=redis://redis:6379/1
 Для запуска всех сервисов выполните команду:
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
 Будут запущены следующие сервисы:
@@ -88,7 +147,7 @@ docker compose up --build
 После запуска проекта убедитесь, что все сервисы работают корректно:
 
 - **Backend** доступен по адресу:  
-  http://localhost:8000
+  http://localhost:8080
 
 - **PostgreSQL** используется backend-сервисом в качестве базы данных
 
@@ -104,46 +163,95 @@ docker compose up --build
 
 ### Установка зависимостей
 
+Убедитесь, что Poetry установлен, затем выполните:
+
 ```bash
 poetry install
 ```
 
-## Создание файла `.env`
+### Создание файла `.env`
+
+Для локального запуска (без Docker) создайте файл `.env` со следующими переменными:
 
 ```env
+DEBUG=True
+SECRET_KEY=your_secret_key
+ALLOWED_HOSTS=127.0.0.1,localhost
+
 DB_NAME=lms
 DB_USER=postgres
 DB_PASSWORD=your_password
 DB_HOST=localhost
 DB_PORT=5432
+
+REDIS_URL=redis://127.0.0.1:6379/0
+CELERY_BROKER_URL=redis://127.0.0.1:6379/0
+CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1
 ```
 
-## Применить миграции и запустить сервер:
+### Применение миграций и запуск сервера
 
 ```bash
+poetry run python manage.py makemigrations
 poetry run python manage.py migrate
 poetry run python manage.py runserver
 ```
 
 ## API
 
-### Курсы — `/api/courses/`
+Базовый URL API:
+
+```text
+/api/
+```
+Все эндпоинты доступны через указанный базовый префикс.
+
+### Курсы
+
+`/api/courses/`
 
 - **GET** — получить список курсов
 - **POST** — создать курс
-- **GET `/api/courses/{id}/`** — получить один курс
-- **PUT `/api/courses/{id}/`** — изменить полностью
-- **PATCH `/api/courses/{id}/`** — изменить частично
-- **DELETE `/api/courses/{id}/`** — удалить курс
 
-### Уроки — `/api/lessons/`
+`/api/courses/{id}/`
+
+- **GET** — получить один курс
+- **PUT** — изменить полностью
+- **PATCH** — изменить частично
+- **DELETE** — удалить курс
+
+### Уроки
+
+`/api/lessons/`
 
 - **GET** — получить список уроков
 - **POST** — создать урок
-- **GET `/api/lessons/{id}/`** — получить один урок
-- **PUT `/api/lessons/{id}/`** — изменить полностью
-- **PATCH `/api/lessons/{id}/`** — изменить частично
-- **DELETE `/api/lessons/{id}/`** — удалить урок
+
+`/api/lessons/{id}/`
+
+- **GET** — получить один урок
+- **PUT** — изменить полностью
+- **PATCH** — изменить частично
+- **DELETE** — удалить урок
+
+### Аутентификация
+
+API использует JWT-аутентификацию.
+
+Доступ к защищённым эндпоинтам возможен только при передаче токена в заголовке:
+
+```http
+Authorization: Bearer <token>
+```
+
+### Документация API
+
+В проекте используется **drf-spectacular** для генерации схемы API.
+
+При включённой документации в настройках проекта доступны следующие эндпоинты:
+
+- Swagger UI — `/swagger/`
+- Redoc — `/redoc/`
 
 ### Celery & Celery Beat
 
@@ -156,7 +264,7 @@ poetry run python manage.py runserver
 
 Задача запускается ежедневно в 03:00 (Europe/Moscow).
 
-Для запуска:
+При локальном запуске без Docker:
 
 ```bash
 celery -A config worker -l info
@@ -174,8 +282,8 @@ celery -A config beat -l info
 1. Разработка ведётся в feature-ветках
 2. Создаётся Pull Request в ветку `develop`
 3. При push / merge в `develop`:
-    - запускаются тесты
-    - при успешных тестах выполняется деплой на сервер
+    - выполняются проверки CI (lint, тесты, сборка Docker-образов)
+    - при успешных проверках проект автоматически разворачивается на сервере через Docker Compose
 
 ---
 
@@ -183,12 +291,10 @@ celery -A config beat -l info
 
 Удалённый сервер (Ubuntu) должен иметь:
 
-- Python 3.12+
-- Poetry
-- PostgreSQL
-- Redis
-- systemd
-- Открытые порты: `22`, `80` (и `8000`, если доступ к backend осуществляется напрямую без Nginx)
+- Docker
+- Docker Compose
+- SSH-доступ
+- Открытые порты: `22`, `80`
 
 ---
 
@@ -200,14 +306,12 @@ celery -A config beat -l info
 /home/ubuntu/apps/lms-backend
 ```
 
-Код на сервере всегда находится в ветке develop
+Код на сервере всегда находится в ветке `develop`.
 
-Если **Nginx не настроен**, backend доступен напрямую по адресу:
+Проект разворачивается и запускается на сервере с помощью **Docker Compose**.
 
-```text
-http://<SERVER_IP>:8000
-```
-На текущий момент деплой настроен без Nginx, с прямым доступом к Gunicorn.
+**Адрес сервера с развернутым приложением:**  
+http://158.160.186.6/
 
 
 ## Переменные окружения
@@ -228,12 +332,19 @@ cp .env.example .env
 - `DB_NAME=lms_backend`
 - `DB_USER=lms_user`
 - `DB_PASSWORD=strong_password`
-- `DB_HOST=127.0.0.1`
 - `DB_PORT=5432`
-- `REDIS_URL=redis://127.0.0.1:6379/0`
-- `CELERY_BROKER_URL=redis://127.0.0.1:6379/0`
-- `CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1`
 
+### Переменные для Docker Compose
+
+- `DB_HOST=postgres`
+- `REDIS_URL=redis://redis:6379/0`
+- `CELERY_BROKER_URL=redis://redis:6379/0`
+- `CELERY_RESULT_BACKEND=redis://redis:6379/1`
+
+### Переменные для локального запуска без Docker
+
+- `DB_HOST=127.0.0.1`
+- `REDIS_URL=redis://127.0.0.1:6379/0`
 
 ### GitHub Secrets
 
@@ -246,7 +357,6 @@ cp .env.example .env
 
 Secrets используются в GitHub Actions workflow и не хранятся в репозитории.
 
-
 ## Важно
 
 Значения:
@@ -256,86 +366,29 @@ Secrets используются в GitHub Actions workflow и не хранят
 
 используются **только при запуске через Docker Compose**.
 
-При деплое на сервер **без Docker** необходимо использовать:
-
-```text
-127.0.0.1
-```
-
 Файл `.env` **не коммитится** и добавлен в `.gitignore`.
 
-## CI (тесты)
+## CI (Continuous Integration)
 
-Workflow **GitHub Actions**:
+CI запускается автоматически при каждом `push` в репозиторий.
 
-- запускается при каждом `push`;
-- устанавливает зависимости через **Poetry**;
-- выполняет команду:
+На этапе CI выполняются следующие шаги:
 
-```bash
-poetry run python manage.py test
-```
+- проверка кода с помощью **flake8**
+- запуск тестов Django
+- проверка сборки Docker-образов
 
-При ошибках тестов деплой не выполняется.
+## CD (Continuous Deployment)
 
-## CD (деплой)
+Деплой выполняется **только для ветки `develop`** после успешного прохождения CI.
 
-Деплой выполняется **только для ветки `develop`** после успешного прохождения тестов.
+Во время деплоя выполняются следующие шаги:
 
-### Во время деплоя выполняются шаги:
+- подключение к серверу по SSH
+- обновление кода из ветки `develop`
+- сборка и запуск сервисов через Docker Compose
+- перезапуск контейнеров приложения
 
-- **GitHub Actions** подключается к серверу по **SSH**;
-- выполняется обновление кода:
-
-```bash
-git pull origin develop
-```
-
-- устанавливаются зависимости:
-
-```bash
-poetry install --no-interaction --no-root
-```
-
-- применяются миграции базы данных:
-
-```bash
-poetry run python manage.py migrate --noinput
-```
-
-- перезапускается backend-сервис:
-
-```bash
-sudo systemctl restart lms-backend.service
-```
-
-## Управление приложением
-
-Backend-приложение запускается через **Gunicorn** и управляется **systemd**.
-
-Gunicorn используется как WSGI-сервер для Django, а systemd — для:
-- автоматического запуска приложения при старте сервера;
-- перезапуска при падении;
-- перезапуска во время деплоя.
-
-### systemd-сервис
-
-- имя сервиса: `lms-backend.service`
-- пользователь: `ubuntu`
-- рабочая директория: `/home/ubuntu/apps/lms-backend`
-
-Во время деплоя GitHub Actions выполняет команду:
-
-```bash
-sudo systemctl restart lms-backend.service
-```
-
-### Проверка состояния сервиса на сервере
-
-```bash
-sudo systemctl status lms-backend.service
-sudo journalctl -u lms-backend.service -n 50 --no-pager
-```
 ---
 
 ## Автор

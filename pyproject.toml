@@ -29,6 +29,14 @@ dependencies = [
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+
+[tool.poetry]
+name = "lms-backend"
+version = "0.1.0"
+description = ""
+authors = ["Olga Noskova <olga.tolba@gmail.com>"]
+
+
 [tool.poetry.group.dev.dependencies]
 flake8 = "^7.3.0"
 
